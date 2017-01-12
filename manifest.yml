@@ -1,0 +1,14 @@
+applications:
+- path: .
+  memory: 512M
+  instances: 1
+  domain: mybluemix.net
+  name: PublicPog
+  host: PublicPog
+  disk_quota: 1024M
+  services:
+  - PublicPog-cloudantNoSQLDB
+  - availability-monitoring-auto
+  env:
+    NODE_RED_PASSWORD: c0cc0b1ll
+    NODE_RED_USERNAME: stefanopog
