@@ -49,7 +49,15 @@ var settings = module.exports = {
     // Serve up the welcome page
     httpStatic: path.join(__dirname,"public"),
 
-    functionGlobalContext: { },
+    functionGlobalContext: {
+        // os:require('os'),
+        //xml2js: require('xml2js'),
+        fs: require('fs'), 
+        cloudant: require('cloudant'),
+        process: require('process'),
+        VCAP_APPLICATION : JSON.parse(process.env.VCAP_APPLICATION),
+        VCAP_SERVICES: JSON.parse(process.env.VCAP_SERVICES)
+    },
 
     storageModule: require("./couchstorage")
 }

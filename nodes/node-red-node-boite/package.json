@@ -1,0 +1,77 @@
+{
+  "_args": [
+    [
+      "node-red-node-boite",
+      ""
+    ]
+  ],
+  "_from": "node-red-node-boite@latest",
+  "_id": "node-red-node-boite@0.2.4",
+  "_inCache": true,
+  "_installable": true,
+  "_location": "/node-red-node-boite",
+  "_npmUser": {
+    "email": "stefano@poglianis.net",
+    "name": "coccobill"
+  },
+  "_npmVersion": "2.11.3",
+  "_phantomChildren": {},
+  "_requested": {
+    "name": "node-red-node-boite",
+    "raw": "node-red-node-boite",
+    "rawSpec": "",
+    "scope": null,
+    "spec": "latest",
+    "type": "tag"
+  },
+  "_requiredBy": [
+    "#USER"
+  ],
+  "_resolved": "https://registry.npmjs.org/node-red-node-boite/-/node-red-node-boite-0.2.4.tgz",
+  "_shasum": "c5afd6538736010f64554d3f7c24f1b18b0441c4",
+  "_shrinkwrap": null,
+  "_spec": "node-red-node-boite",
+  "_where": "",
+  "author": {
+    "email": "stefano.pogliani@fr.ibm.com",
+    "name": "Stefano Pogliani",
+    "url": "http://nodered.org"
+  },
+  "dependencies": {
+    "minimatch": "^1.0.0",
+    "request": "~2.40.0"
+  },
+  "description": "Node-RED FORK nodes to watch, download and save files to Box",
+  "devDependencies": {},
+  "directories": {},
+  "dist": {
+    "shasum": "c5afd6538736010f64554d3f7c24f1b18b0441c4",
+    "tarball": "https://registry.npmjs.org/node-red-node-boite/-/node-red-node-boite-0.2.4.tgz"
+  },
+  "keywords": [
+    "node-red",
+    "box",
+    "bookmark"
+  ],
+  "license": "Apache-2.0",
+  "maintainers": [
+    {
+      "email": "stefano@poglianis.net",
+      "name": "coccobill"
+    }
+  ],
+  "name": "node-red-node-boite",
+  "node-red": {
+    "nodes": {
+      "boite": "boite.js"
+    }
+  },
+  "optionalDependencies": {},
+  "readme": "ERROR: No README data found!",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/node-red/node-red-web-nodes/tree/master/boite"
+  },
+  "scripts": {},
+  "version": "0.2.4"
+}

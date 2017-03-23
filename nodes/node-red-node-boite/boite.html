@@ -1,0 +1,421 @@
+<!--
+  Copyright 2014 IBM Corp.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<script type="text/x-red" data-template-name="boite-credentials">
+    <div id="node-config-boite-client-keys">
+        <div class="form-row">
+            <p style="margin-top: 10px;"><b>1.</b> <span data-i18n="boite.label.create"></span> <a href="https://app.box.com/developers/" target="_blank" style="text-decoration:underline;">Box</a></p>
+        </div>
+        <div class="form-tips" id="node-config-boite-tooltip">
+        </div>
+        <div class="form-row">
+            <p style="margin-top: 10px;"><b>2.</b> <span data-i18n="boite.label.copy"></span>:</p>
+        </div>
+        <div class="form-row">
+            <label style="margin-left: 10px; margin-right: -10px;" for="node-config-input-clientId"><i class="fa fa-user"></i> <span data-i18n="boite.label.clientid"></span></label>
+            <input type="password" id="node-config-input-clientId">
+        </div>
+        <div class="form-row">
+            <label style="margin-left: 10px; margin-right: -10px;" for="node-config-input-clientSecret"><i class="fa fa-key"></i> <span data-i18n="boite.label.secret"></span></label>
+            <input type="password" id="node-config-input-clientSecret">
+        </div>
+        <div class="form-row">
+           <label>&nbsp;</label>
+           <a class="btn" id="node-config-start-auth" href="#" target="_blank"><span data-i18n="boite.label.authenticate"></span></a>
+        </div>
+    </div>
+    <div id="node-config-boite">
+        <div class="form-row">
+            <label><i class="fa fa-user"></i> <span data-i18n="boite.label.boiteuser"></span></label><span id="node-config-boite-displayName" class="input-xlarge uneditable-input"></span>
+        </div>
+        <input type="hidden" id="node-config-input-displayName">
+    </div>
+</script>
+
+<script type="text/javascript">
+(function() {
+    RED.nodes.registerType('boite-credentials',{
+        category: 'config',
+        defaults: {
+            displayName: {value:""}
+        },
+        credentials: {
+            displayName: {type:"text"},
+            clientId: { type: "password"},
+            clientSecret: { type: "password"}
+        },
+        label: function() {
+            return this.displayName || 'Box';
+        },
+        exportable: false,
+        oneditprepare: function() {
+            var id = this.id;
+            var pathname = document.location.pathname;
+            if (pathname.slice(-1) != "/") {
+                pathname += "/";
+            }
+            var callback = location.protocol + "//" +
+                           location.hostname +
+                           (location.port? ":"+location.port:"")+
+                           pathname + "boite-credentials/auth/callback";
+            var tip = this._("boite.tip.redirect",{callback:callback});
+            $("#node-config-boite-tooltip").html(tip);
+
+            function updateBoiteAuthButton() {
+                var v1 = $("#node-config-input-clientId").val();
+                var v2 = $("#node-config-input-clientSecret").val();
+                $("#node-config-start-auth").toggleClass("disabled",(v1.length === 0 || v2.length === 0));
+            }
+            $("#node-config-input-clientId").on('change keydown paste input',updateBoiteAuthButton);
+            $("#node-config-input-clientSecret").on('change keydown paste input',updateBoiteAuthButton);
+
+            function updateBoiteDisplayName(dn) {
+                $("#node-config-boite-client-keys").hide();
+                $("#node-config-boite").show();
+                $("#node-config-input-displayName").val(dn);
+                $("#node-config-boite-displayName").html(dn);
+            }
+
+            function pollBoiteCredentials() {
+                $.getJSON('credentials/boite-credentials/'+id,function(data) {
+                    if (data.displayName) {
+                        $("#node-config-dialog-ok").button("enable");
+                        updateBoiteDisplayName(data.displayName);
+                        delete window.boiteConfigNodeIntervalId;
+                    } else {
+                        window.boiteConfigNodeIntervalId = window.setTimeout(pollBoiteCredentials,2000);
+                    }
+                });
+             }
+
+            updateBoiteAuthButton();
+
+            if (this.displayName) {
+                updateBoiteDisplayName(this.displayName);
+            } else {
+                $("#node-config-boite-client-keys").show();
+                $("#node-config-boite").hide();
+                $("#node-config-dialog-ok").button("disable");
+            }
+
+            $("#node-config-start-auth").mousedown(function() {
+                var clientId = $("#node-config-input-clientId").val();
+                var clientSecret = $("#node-config-input-clientSecret").val();
+                var url = 'boite-credentials/auth?id='+id+'&clientId='+clientId+"&clientSecret="+clientSecret+"&callback="+encodeURIComponent(callback);
+                $(this).attr("href",url);
+                window.boiteConfigNodeIntervalId = window.setTimeout(pollBoiteCredentials,2000);
+            });
+            $("#node-config-start-auth").click(function(e) {
+                var clientId = $("#node-config-input-clientId").val();
+                var clientSecret = $("#node-config-input-clientSecret").val();
+                if (clientId === "" || clientSecret === "") {
+                    e.preventDefault();
+                }
+            });
+        },
+        oneditsave: function() {
+            if (window.boiteConfigNodeIntervalId) {
+                window.clearTimeout(window.boiteConfigNodeIntervalId);
+                delete window.boiteConfigNodeIntervalId;
+            }
+        },
+        oneditcancel: function() {
+            if (window.boiteConfigNodeIntervalId) {
+                window.clearTimeout(window.boiteConfigNodeIntervalId);
+                delete window.boiteConfigNodeIntervalId;
+            }
+        }
+    });
+})();
+</script>
+
+<script type="text/x-red" data-template-name="boite in">
+    <div class="form-row">
+        <label for="node-input-boite"><i class="fa fa-user"></i> <span data-i18n="boite.label.boite"></span></label>
+        <input type="text" id="node-input-boite">
+    </div>
+    <div class="form-row node-input-filepattern">
+         <label for="node-input-filepattern"><i class="fa fa-file"></i> <span data-i18n="boite.label.pattern"></span></label>
+         <input type="text" id="node-input-filepattern" data-i18n="[placeholder]boite.placeholder.pattern">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="boite.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]boite.placeholder.name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="boite in">
+    <p>Box watch node. Watches for file events on Box. By default all
+    file events are reported, but the filename pattern can be supplied
+    to limit the events to files which have full filenames that match
+    the glob pattern. The event messages consist of the full filename
+    in <b>msg.payload</b> property, the filename in <b>msg.file</b>,
+    the event type in <b>msg.event</b> and the full event entry as
+    returned by
+    the <a href="https://developers.box.com/docs/#events">event
+    API</a> in <b>msg.data</b>.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'boite in',
+        {
+            category: 'storage-input',
+            color:"#C0DEED",
+            defaults: {
+                boite: {
+                    type:"boite-credentials",
+                    required:true
+                },
+                filepattern: {
+                    value:""
+                },
+                name: {
+                    value:""
+                }
+            },
+            inputs:0,
+            outputs:1,
+            icon: "box.png",
+            label: function() {
+                return this.name||this.filepattern||'Box';
+            }
+        });
+
+</script>
+
+<script type="text/x-red" data-template-name="boite">
+    <div class="form-row">
+        <label for="node-input-boite"><i class="fa fa-user"></i> <span data-i18n="boite.label.boite"></span></label>
+        <input type="text" id="node-input-boite">
+    </div>
+    <div class="form-row node-input-filename">
+         <label for="node-input-filename"><i class="fa fa-file"></i> <span data-i18n="boite.label.filename"></span></label>
+         <input type="text" id="node-input-filename" data-i18n="[placeholder]boite.placeholder.filename">
+    </div>
+    
+    
+    <div class="form-row">
+        <label for="node-input-action"><i class="fa fa-arrow-circle-right"></i> Action</label>
+        <select id="node-input-action" onchange="updateFormBoiteActions()">
+	       <option value="Download">Donwload File</option>
+	       <option value="GetInfo">Get File Infos</option>
+	       <option value="UpdateInfo">Update File Infos</option>
+	       <option value="CreateLink">Create Web Link</option>
+	       <option value="GetMetadata">Get File Metadata</option>
+	       <option value="SetMetadata">Set File Metadata</option>
+	       <option value="UpdateMetadata">Update File Metadata</option>
+        </select>
+        <br />
+    </div>
+
+
+    <div class="form-row" id="metadataHeaderRow">
+       <label><b>Metadata Options</b></label>
+        <hr />
+    </div>
+
+        
+    <div class="form-row" id="metadataNameRow">
+        <label for="node-input-metadataName"><i class="fa fa-institution"></i> Name</label>
+        <input type="text" id="node-input-metadataName" placeholder="Metadata Name"></input>
+        <br />
+    </div>
+
+    <div class="form-row" id="metadataContentRow">
+        <label for="node-input-metadataContent"><i class="fa fa-institution"></i> Value</label>
+        <input type="text" id="node-input-metadataContent" placeholder="Metadata Value (JSON)"></input>
+        <br />
+    </div>
+    
+    <div class="form-row" id="infoContentRow">
+        <label for="node-input-infoContent"><i class="fa fa-institution"></i> Info</label>
+        <input type="text" id="node-input-infoContent" placeholder="File Info (JSON)"></input>
+        <br />
+    </div>
+    
+    <br />
+    <div class="form-row">
+        <hr />
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="boite.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]boite.placeholder.name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="boite">
+    <p>0.2.3 This node provides several operation on a BOX File. In all situations, the filename on Box is taken from the node <b>filename</b> property or the <code>msg.filename</code> property.</p>
+    <ul>
+    <li><b>Download</b><br/>
+    The filename is downloaded and the content is stored (as a buffer) in the <code>msg.payload</code> property.
+    </li>
+    <li><b>GetInfo</b><br/>
+    The information about the file are retrieved and stored in the <code>msg.payload</code> property.<br />
+    <b>NOTE : </b>All the information from the file are retrieved, even the "optional ones"
+    </li>
+    <li><b>UpdateInfo</b><br />
+    The information to be updated can be passed either in the Configuration Panel or via the <code>msg.infoContent</code> property. It needs to be a valid JSON string: the node will not perform any syntactic check.<br />
+    The result of the operation is returned in the <code>msg.payload</code> property.
+    </li>
+    <li><b>CreateLink</b><br />
+    This option allows the creation of a WebLink on the relavant BOX File. The link is returned in the <code>msg.payload</code> property.
+    </li>
+    <li><b>GetMetadata</b><br />
+    The Metadata for the relevant file are retrieved. The name of the Metadata template can be passed either in the Configuration Panel or via the <code>msg.metadataName</code> property. The result is returned in the <code>msg.payload</code> property.
+    </li>
+    <li><b>SetMetadata</b><br />
+    It is possible to set the values of the Metadata template on the relevant file. The name of the Metadata template can be passed either in the Configuration Panel or via the <code>msg.metadataName</code> property. The values of the Metadata properties can be passed either in the Configuration Panel or via the <code>msg.metadataContent</code> property. The result is returned in the <code>msg.payload</code> property.
+    </li>
+    <li><b>UpdateMetadata</b><br />
+    It is possible to update the values of the Metadata template on the relevant file. The name of the Metadata template can be passed either in the Configuration Panel or via the <code>msg.metadataName</code> property. The values of the Metadata properties can be passed either in the Configuration Panel or via the <code>msg.metadataContent</code> property. The result is returned in the <code>msg.payload</code> property.
+    </li>
+    </ul>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType(
+        'boite',
+        {
+            category: 'storage-input',
+            inputs:1,
+            outputs:1,
+            icon: "box.png",
+            color:"#C0DEED",
+            label: function() {
+                return this.name||this.filename||'Box';
+            },
+            defaults: {
+                boite: {
+                    type:"boite-credentials",
+                    required:true
+                },
+                filename: {
+                    value:""
+                },
+                name: {
+                    value:""
+                },
+                metadataContent: {
+                    value:""
+                },
+                metadataName: {
+                    value:""
+                },
+                infoContent: {
+                    value:""
+                },
+                action: {
+                    value: "Download",
+                    required: true
+                }
+            },
+            oneditprepare: updateFormBoiteActions
+        }
+    );
+
+    
+    function updateFormBoiteActions() { 
+       switch (document.querySelector("#node-input-action").value) {
+           case "Download" :
+               document.querySelector("#metadataHeaderRow").style.display = "none";
+               document.querySelector("#metadataContentRow").style.display = "none";
+               document.querySelector("#metadataNameRow").style.display = "none";
+               document.querySelector("#infoContentRow").style.display = "none";
+               break;
+           case "GetInfo" :
+               document.querySelector("#metadataHeaderRow").style.display = "none";
+               document.querySelector("#metadataContentRow").style.display = "none";
+               document.querySelector("#metadataNameRow").style.display = "none";
+               document.querySelector("#infoContentRow").style.display = "none";
+               break;
+           case "CreateLink" :
+               document.querySelector("#metadataHeaderRow").style.display = "none";
+               document.querySelector("#metadataContentRow").style.display = "none";
+               document.querySelector("#metadataNameRow").style.display = "none";
+               document.querySelector("#infoContentRow").style.display = "none";
+               break;
+           case "GetMetadata" :
+               document.querySelector("#metadataHeaderRow").style.display = "inline";
+               document.querySelector("#metadataContentRow").style.display = "none";
+               document.querySelector("#metadataNameRow").style.display = "inline";
+               document.querySelector("#infoContentRow").style.display = "none";
+               break;
+           case "SetMetadata" :
+               document.querySelector("#metadataHeaderRow").style.display = "inline";
+               document.querySelector("#metadataContentRow").style.display = "inline";
+               document.querySelector("#metadataNameRow").style.display = "inline";
+               document.querySelector("#infoContentRow").style.display = "none";
+               break;
+           case "UpdateMetadata" :
+               document.querySelector("#metadataHeaderRow").style.display = "inline";
+               document.querySelector("#metadataContentRow").style.display = "inline";
+               document.querySelector("#metadataNameRow").style.display = "inline";
+               document.querySelector("#infoContentRow").style.display = "none";
+               break;
+           case "UpdateInfo" :
+               document.querySelector("#metadataHeaderRow").style.display = "none";
+               document.querySelector("#metadataContentRow").style.display = "none";
+               document.querySelector("#metadataNameRow").style.display = "none";
+               document.querySelector("#infoContentRow").style.display = "inline";
+               break;
+       }
+    }
+
+
+</script>
+
+<script type="text/x-red" data-template-name="boite out">
+    <div class="form-row">
+        <label for="node-input-boite"><i class="fa fa-user"></i> <span data-i18n="boite.label.boite"></span></label>
+        <input type="text" id="node-input-boite">
+    </div>
+    <div class="form-row node-input-filename">
+         <label for="node-input-filename"><i class="fa fa-file"></i> <span data-i18n="boite.label.filename"></span></label>
+         <input type="text" id="node-input-filename" data-i18n="[placeholder]boite.placeholder.filename">
+    </div>
+    <div class="form-row node-input-localFilename">
+         <label for="node-input-localFilename"><i class="fa fa-file"></i> <span data-i18n="boite.label.local"></span></label>
+         <input type="text" id="node-input-localFilename" data-i18n="[placeholder]boite.placeholder.local">
+    </div>
+    
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="boite.label.name"></span></label>
+        <input type="text" id="node-input-name" data-i18n="[placeholder]boite.placeholder.name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="boite out">
+    <p>Uploads content to Box. The filename on Box is taken from the node <b>filename</b> property or the <b>msg.filename</b> property. The content is taken from either the node <b>localFilename</b> property, the <b>msg.localFilename</b> property or the <b>msg.payload</b> property.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('boite out',{
+        category: 'storage-output',
+        color:"#C0DEED",
+        defaults: {
+            boite: {type:"boite-credentials",required:true},
+            filename: {value:""},
+            localFilename: {value:""},
+            name: {value:""}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "box.png",
+        align: "right",
+        label: function() {
+            return this.name||this.filename||this.localFilename||'Box';
+        }
+    });
+</script>
